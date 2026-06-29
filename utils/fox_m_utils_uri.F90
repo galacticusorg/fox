@@ -72,6 +72,7 @@ module fox_m_utils_uri
   public :: hasPort
   public :: getPort
   public :: getPath
+  public :: escapeURIPath
   public :: hasQuery
   public :: getQuery
   public :: hasFragment
@@ -384,6 +385,23 @@ contains
     p = verifyWithPctEncoding(fragment, uric)
   end function checkFragment
 #endif
+
+  function escapeURIPath(path) result(escaped)
+    ! Percent-encode characters that are legal in a filesystem path but illegal
+    ! in a URI path (most commonly a space, e.g. macOS's "Application Support").
+    ! Path separators ("/") and characters already legal in a URI path segment
+    ! are preserved; FoX's getPath -> unEscape_alloc restores the real path when
+    ! the file is opened. Intended for turning a bare local filename into a
+    ! string that parseURI will accept.
+    character(len=*), intent(in) :: path
+#ifdef DUMMYLIB
+    character(len=len(path)) :: escaped
+    escaped = path
+#else
+    character(len=pctEncode_len(path, pchar//"/")) :: escaped
+    escaped = pctEncode(path, pchar//"/")
+#endif
+  end function escapeURIPath
 
   function parseURI(inURIstring) result(u)
     character(len=*), intent(in) :: inURIstring

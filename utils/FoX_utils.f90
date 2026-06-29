@@ -18,5 +18,6 @@ module FoX_utils
   public :: hasScheme
   public :: getScheme
   public :: getPath
+  public :: escapeURIPath
 
 end module FoX_utils
