@@ -14,7 +14,15 @@ if ! make $1.exe; then
   echo Cannot compile $1 >> failed.out
   echo "------------" >> failed.out
 else
-  ./$1.exe 2>&1 | tr -d '\15' | grep -v 'STOP' > test.out
+  # Strip any compiler/runtime backtrace that follows a fatal abort or signal.
+  # The canonical .out files capture only the program's own (FoX) output, but
+  # newer gfortran prints a backtrace to stderr when abort() is called. Delete
+  # from the first backtrace header line through end of output so the deliberate
+  # error-message tests still compare cleanly.
+  ./$1.exe 2>&1 | tr -d '\15' | grep -v 'STOP' \
+    | sed -e '/^Program aborted. Backtrace:/,$d' \
+          -e '/^Program received signal/,$d' \
+          -e '/^Backtrace for this error:/,$d' > test.out
   if test -f $1.xml
   then
     tr -d '\15' < test.xml | grep -v UUID > test.xml.tmp; mv test.xml.tmp test.xml
