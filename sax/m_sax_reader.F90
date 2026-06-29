@@ -8,7 +8,7 @@ module m_sax_reader
   use m_common_io, only: setup_io, get_unit, io_err
 
   use FoX_utils, only: URI, parseURI, copyURI, destroyURI, &
-    hasScheme, getScheme, getPath
+    hasScheme, getScheme, getPath, escapeURIPath
 
   use m_sax_xml_source, only: xml_source_t, &
     get_char_from_file, push_file_chars, parse_declaration
@@ -72,6 +72,12 @@ contains
       call open_new_string(fb, string, "", baseURI=fileURI)
     else
       fileURI => parseURI(file)
+      if (.not.associated(fileURI)) &
+        ! A bare filesystem path may contain characters illegal in a URI (most
+        ! commonly a space, as in macOS's "Application Support"). Percent-encode
+        ! them and retry before giving up. getPath() decodes them again, so the
+        ! file is still opened by its true name.
+        fileURI => parseURI(escapeURIPath(file))
       if (.not.associated(fileURI)) then
         call add_error(es, "Could not open file "//file//" - not a valid URI")
         iostat=1
